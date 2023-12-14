@@ -1,8 +1,6 @@
 package engine.model
 
-
-data class Quiz (
-    var quizId: Int,
+data class QuizRequest (
     var title: String,
     var text: String,
     var options: ArrayList<String>,
