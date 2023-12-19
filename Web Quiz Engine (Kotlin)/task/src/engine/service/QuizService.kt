@@ -1,9 +1,6 @@
 package engine.service
 
-import engine.model.GameResult
-import engine.model.Quiz
-import engine.model.QuizRequest
-import engine.model.QuizResponse
+import engine.model.*
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
@@ -15,6 +12,11 @@ class QuizService {
     private var quizId: Int = 0
 
     fun saveNewQuiz(quizRequest: QuizRequest): QuizResponse{
+        if(quizRequest.text.isEmpty()
+            || quizRequest.title.isEmpty()
+            || quizRequest.options.size < 2){
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        }
         quizId += 1
         val quiz = Quiz(
             quizId,
@@ -49,16 +51,33 @@ class QuizService {
 
     }
 
-    fun checkQuizAnswer(quizId: Int, answer: Int): GameResult{
-       val actualQuiz: Quiz = quizBase[quizId-1]
-        return if (answer != actualQuiz.answer) {
-            val fail = false
-            val failFeedback = "Wrong answer! Please, try again."
-            GameResult(fail, failFeedback)
-        } else {
-            val success = true
-            val successFeedback = "Congratulations, you're right!"
-            GameResult(success, successFeedback)
+    fun checkQuizAnswer(quizId: Int, answer: QuizAnswerRequest?): GameResult{
+        try{
+            val actualQuiz: Quiz = quizBase[quizId-1]
+            return if (isEqualIgnoreOrder(actualQuiz.answer, answer?.answer)
+                || actualQuiz.answer == null && answer?.answer?.isEmpty() == true
+            ) {
+                val success = true
+                val successFeedback = "Congratulations, you're right!"
+                GameResult(success, successFeedback)
+            } else {
+                val fail = false
+                val failFeedback = "Wrong answer! Please, try again."
+                GameResult(fail, failFeedback)
+            }
+        } catch (ex: IndexOutOfBoundsException){
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found")
         }
     }
+
+    fun isEqualIgnoreOrder(x: List<Int>?, y: List<Int>?): Boolean {
+        if (x == y) {
+            return true
+        }
+        if (x == null || y == null || x.size != y.size) {
+            return false
+        }
+        return x.sorted().toList() == y.sorted().toList()
+    }
 }
+
